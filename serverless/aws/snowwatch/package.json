@@ -1,0 +1,9 @@
+{
+  "name": "snowwatch",
+  "description": "",
+  "version": "0.2.0",
+  "dependencies": {
+    "serverless": "^1.44.1"
+  },
+  "devDependencies": {}
+}

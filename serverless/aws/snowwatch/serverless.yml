@@ -1,0 +1,136 @@
+service: snowwatch
+
+custom:
+  version: 1.1.1
+  # change these values 
+  readerRoleArns: ${opt:reader_role_arns, ''} # comma-separated string of snowwatch-reader-role ARNs used to monitor other accounts. Leave this empty to just monitor the current account. You can modify the empty string here or pass the value as an argument to the serverless command (serverless deploy --reader_role_arns mycoolarn,yourcoolarn,ourcoolarn) 
+  awsConfigProfileName: ${opt:aws_config_profile_name, 'default'} # Change this if you want to use a different .aws/credentials profile or pass it in as an argument to the serverless command (serverless deploy --awsConfigProfileName altProfileName)
+  awsAccountID: ${opt:account_id, ''} # required to make sure your s3 bucket is unique. Replace this value with your account ID or pass it in as an argument to the serverless command (serverless deploy --account_id 123456)
+  lambda: 
+    runFrequencyInMinutes: 60
+    timeoutInSeconds: 120
+
+  # probably don't change these values
+  stage: ${opt:stage, 'prod'}
+  s3:
+    bucketName: ${self:service}-${self:custom.awsAccountID}
+    ec2MonitoringPath: ec2_monitoring
+    securityGroupMonitoringPath: security_group_monitoring
+    iamMonitoringPath: iam_monitoring
+    elbMonitoringPath: elb_monitoring
+
+# cloud provider config
+provider:
+  name: aws
+  runtime: python3.6
+  stage: prod
+  region: us-east-1
+  profile: ${self:custom.awsConfigProfileName} # aws config profile to use from ~/.aws/config
+  environment:
+    READER_ROLE_ARNS: ${self:custom.readerRoleArns}
+    S3_BUCKET_NAME: ${self:custom.s3.bucketName}
+    S3_EC2_MONITORING_PATH: ${self:custom.s3.ec2MonitoringPath}
+    S3_SG_MONITORING_PATH: ${self:custom.s3.securityGroupMonitoringPath}
+    S3_IAM_MONITORING_PATH: ${self:custom.s3.iamMonitoringPath}
+    S3_ELB_MONITORING_PATH: ${self:custom.s3.elbMonitoringPath}
+  iamRoleStatements:
+    - Effect: Allow # allow writing to s3
+      Action:
+        - s3:PutObject
+      Resource:
+        - "arn:aws:s3:::${self:custom.s3.bucketName}/${self:custom.s3.ec2MonitoringPath}/*"
+        - "arn:aws:s3:::${self:custom.s3.bucketName}/${self:custom.s3.securityGroupMonitoringPath}/*"
+        - "arn:aws:s3:::${self:custom.s3.bucketName}/${self:custom.s3.iamMonitoringPath}/*"
+        - "arn:aws:s3:::${self:custom.s3.bucketName}/${self:custom.s3.elbMonitoringPath}/*"
+    - Effect: Allow # ec2 permissions
+      Action:
+        - ec2:DescribeInstances
+        - ec2:DescribeRegions # used to iterate through each region with ec2 entities instead of blindly checking everything
+        - ec2:DescribeSecurityGroups
+      Resource:
+        - '*'
+    - Effect: Allow # elb permissions
+      Action:
+        - elasticloadbalancing:DescribeLoadBalancers
+        - elasticloadbalancing:DescribeListeners
+      Resource:
+        - '*'
+    - Effect: Allow # iam permissions
+      Action:
+        - iam:GetAccountAuthorizationDetails
+        - iam:ListMFADevices
+      Resource:
+        - '*'
+    - Effect: 'Allow' # assume role permissions. DELETE THIS ELEMENT IF NO ARNS ARE PRESENT
+      Action:
+        - 'sts:AssumeRole'
+      Resource: 
+        Fn::Split: 
+          - ","
+          - ${self:custom.readerRoleArns}
+  tags:
+    author: randy.pitcher@hashmapinc.com
+    githubLink: https://github.com/hashmapinc/SnowWatch
+    version: ${self:custom.version}
+  stackTags:
+    author: randy.pitcher@hashmapinc.com
+    githubLink: https://github.com/hashmapinc/SnowWatch
+    version: ${self:custom.version}
+    
+# define lambda functions
+functions:
+  monitorEc2Instances:
+    description: describes each ec2 instance in each region and writes the data to json files in s3
+    handler: ec2Monitoring.monitor
+    timeout: ${self:custom.lambda.timeoutInSeconds}
+    events:
+      - schedule: rate(${self:custom.lambda.runFrequencyInMinutes} minutes)
+  monitorSecurityGroups:
+    description: describes each security group in each region and writes the data to json files in s3
+    handler: securityGroupMonitoring.monitor
+    timeout: ${self:custom.lambda.timeoutInSeconds}
+    events:
+      - schedule: rate(${self:custom.lambda.runFrequencyInMinutes} minutes)
+  monitorELBs:
+    description: describes each elb in each region and writes the data to json files in s3
+    handler: elbMonitoring.monitor
+    timeout: ${self:custom.lambda.timeoutInSeconds}
+    events:
+      - schedule: rate(${self:custom.lambda.runFrequencyInMinutes} minutes)
+  monitorIAM:
+    description: gathers user, policy, and MFA data and writes it to json files in s3
+    handler: iamMonitoring.monitor
+    timeout: ${self:custom.lambda.timeoutInSeconds}
+    events:
+      - schedule: rate(${self:custom.lambda.runFrequencyInMinutes} minutes)
+
+# Create resources with separate CloudFormation templates
+resources:
+  - Resources:
+      # S3 bucket definition for snowwatch
+      S3BucketSnowwatch:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${self:custom.s3.bucketName}
+      
+      # Access policy for snowpiping from S3BucketSnowwatch
+      S3BucketSnowwatchReadPolicy:
+        Type: AWS::IAM::ManagedPolicy
+        DependsOn: S3BucketSnowwatch
+        Properties: 
+          Description: "full read access to the snowwatch output bucket."
+          ManagedPolicyName: snowwatch_bucket_read_access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                Resource: "arn:aws:s3:::${self:custom.s3.bucketName}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource: "arn:aws:s3:::${self:custom.s3.bucketName}"

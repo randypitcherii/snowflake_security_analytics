@@ -1,0 +1,9 @@
+{
+  "name": "snowwatch_reader_role",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "serverless": "^1.44.1"
+  },
+  "devDependencies": {}
+}

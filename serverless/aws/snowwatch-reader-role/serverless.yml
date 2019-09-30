@@ -1,0 +1,28 @@
+# service name
+service: snowwatch-read-roles
+
+custom:
+  version: 1.0.0
+  awsConfigProfileName: ${opt:aws_config_profile_name, 'default'} # Change this if you want to use a different .aws/credentials profile or pass it in as an argument to the serverless command (serverless deploy --awsConfigProfileName altProfileName)
+  awsRunnerAccountID: ${opt:runner_account_id, ''} # required for granting external roles to the proper account. Replace this value with your account ID or pass it in as an argument to the serverless command (serverless deploy --runner_account_id 123456)
+
+# cloud provider config
+provider:
+  name: aws
+  runtime: python3.6
+  stage: prod
+  region: us-east-1
+  profile: ${self:custom.awsConfigProfileName} # aws config profile to use from ~/.aws/config
+  tags:
+    author: randy.pitcher@hashmapinc.com
+    githubLink: https://github.com/hashmapinc/SnowWatch
+    version: ${self:custom.version}
+  stackTags:
+    author: randy.pitcher@hashmapinc.com
+    githubLink: https://github.com/hashmapinc/SnowWatch
+    version: ${self:custom.version}
+
+# Create resources with separate CloudFormation templates
+resources:
+  # External role and IAM policy definition
+  - ${file(./snowwatch_reader_role.yml)}
