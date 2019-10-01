@@ -54,4 +54,18 @@ AS (
         SNOWALERT.AWS.SECURITY_GROUP_MONITORING_LANDING_ZONE
     )
 );
+
+// passthrough view for alerts
+CREATE OR REPLACE VIEW
+  SNOWALERT.BI.ALERTS
+AS (
+  SELECT * FROM SNOWALERT.DATA.ALERTS
+);
+
+// passthrough view for violations
+CREATE OR REPLACE VIEW
+  SNOWALERT.BI.VIOLATIONS
+AS (
+  SELECT * FROM SNOWALERT.DATA.VIOLATIONS
+);
 //===========================================================

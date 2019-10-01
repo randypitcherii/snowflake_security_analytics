@@ -1,5 +1,5 @@
 //===========================================================
-// Create snowalert alert views
+// Create snowalert alert rules
 //===========================================================
 USE ROLE SNOWALERT;
 USE WAREHOUSE SNOWALERT;
