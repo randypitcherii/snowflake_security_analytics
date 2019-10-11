@@ -1,0 +1,30 @@
+Resources: 
+  SnowwatchReaderRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: snowwatch-reader-role
+      
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: ${self:custom.awsRunnerAccountID}
+            Action: 
+              - "sts:AssumeRole"
+
+      Policies: 
+        - PolicyName: SnowwatchReaderPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Resource: "*"
+              Effect: Allow
+              Action:
+              - ec2:DescribeInstances
+              - ec2:DescribeRegions # used to iterate through each region with ec2 entities instead of blindly checking everything
+              - ec2:DescribeSecurityGroups
+              - elasticloadbalancing:DescribeLoadBalancers
+              - elasticloadbalancing:DescribeListeners
+              - iam:GetAccountAuthorizationDetails
+              - iam:ListMFADevices
