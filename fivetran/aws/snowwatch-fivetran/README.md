@@ -37,4 +37,4 @@ npm i
           - ${self:custom.readerRoleArns}
 ```
 
-A better developer could probably figure out how to handle this IAM permission in cases when no `readerRoleArns`.
+A better developer could probably figure out how to handle this IAM permission in cases when no `readerRoleArns` are provided.
