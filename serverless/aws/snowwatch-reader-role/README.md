@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/hashmapinc/SnowWatch/master/docs/source/sw-logo-large.png" alt="snowwatch"/>
+![](/static/sw-logo-large.png)
 
 # SNOWWATCH Reader Role| Serverless Stack
 This serverless deployment is just some cloudformation to create a single external role in a target readable AWS account. It will grant read access to the following:

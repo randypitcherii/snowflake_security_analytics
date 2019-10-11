@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/hashmapinc/SnowWatch/master/docs/source/sw-logo-large.png" alt="snowwatch"/>
+![](/static/sw-logo-large.png)
 
 # SNOWWATCH Serverless Stack for Fivetran
 This serverless deployment monitors the following resources in AWS
